@@ -3,6 +3,8 @@ import geopy.distance
 import pandas as pd
 import numpy as np
 import math
+import dateutil
+import datetime
 import itertools
 import re
 import Levenshtein
@@ -27,8 +29,14 @@ def prepare_tyndp_data(excel_file, sheet_name, status_map, asset_type_map, colum
     # only choose those in permitting or under construction
     wanted = wanted.loc[wanted['status'].astype(int) >= 3]
 
+    # map asset types to specified names
     wanted = wanted.loc[wanted['asset_type'].isin(asset_type_map.keys())]
     wanted = wanted.replace({'asset_type': asset_type_map})
+
+    # map 'cable' to 'line' but add binary column 'underground'
+    wanted['underground'] = wanted['asset_type'].str.fullmatch('cable')
+    wanted                = wanted.replace({'asset_type': {'cable': 'line'}})
+
     return wanted
 
 
@@ -228,9 +236,9 @@ def match_tyndp_with_buses(lines, tyndp_to_bus, curated_buses):
 
     results = pd.DataFrame(index=fr_to_tuples.keys(),
                            data=fr_to_tuples.values(),
-                           columns=['s1', 'x1', 'y1', 's2', 'x2', 'y2', 'coord_dist'])
+                           columns=['s1', 'x1', 'y1', 's2', 'x2', 'y2', 'coord_dist_km'])
     # TODO: return lines which could not be matched
-    return results.join(lines[['commissioning_year', 'status', 'ac_dc', 'voltage']])
+    return results.join(lines[['commissioning_year', 'status', 'ac_dc', 'voltage', 'underground']])
 
 
 def match_tyndp_with_geopy(lines):
@@ -263,8 +271,28 @@ def match_tyndp_with_geopy(lines):
 
     results = pd.DataFrame(index=fr_to_tuples.keys(),
                            data=fr_to_tuples.values(),
-                           columns=['s1', 'x1', 'y1', 's2', 'x2', 'y2', 'coord_dist'])
-    return results.join(lines[['commissioning_year', 'status', 'ac_dc', 'voltage']])
+                           columns=['s1', 'x1', 'y1', 's2', 'x2', 'y2', 'coord_dist_km'])
+    return results.join(lines[['commissioning_year', 'status', 'ac_dc', 'voltage', 'underground']])
+
+
+def _round_to_year(date_string):
+    d = dateutil.parser.parse(date_string)
+    f = datetime.datetime(d.year, 1, 1)
+    return (f.year + 1) if ((d - f).days > (365 / 2)) else f.year
+
+
+def commissioning_dates_to_year(dates: pd.Series):
+    # Clean up dates
+    remove_whitespace = lambda s: s.replace(' ', '')
+    dates = dates.apply(remove_whitespace)
+
+    # Replace values of format '2022-2023' with the second year
+    dates = dates.str.replace(r'\d{4}-(\d{4})', r'\1',regex=True)
+    # Remove comma in values specified like '2,022' 
+    dates = dates.str.replace(r'(\d{1}),(\d{3})', r'\1\2',regex=True)
+
+    return dates.apply(_round_to_year)
+
 
 
 if __name__ == "__main__":
