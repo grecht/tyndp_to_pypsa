@@ -9,8 +9,26 @@ import itertools
 import re
 import Levenshtein
 
+_column_names = ['investment_id',
+                'commissioning_year',
+                'status',
+                'asset_type',
+                'substation_1',
+                'substation_2',
+                'ac_dc',
+                'voltage',
+                'specified_length_km',
+                'description']
 
 def prepare_tyndp_data(excel_file, sheet_name, status_map, asset_type_map, column_semantics, header_row=0):
+    if any([(v not in _column_names) for v in column_semantics.values()]):
+        wrong_col_names = [v for v in column_semantics.values() if v not in _column_names]
+        error_msg = f""" 
+                    Argument 'column_semantics' contains wrong values {wrong_col_names}.
+                    The values should correspond to those in {_column_names}.
+                    """
+        raise ValueError(error_msg)
+
     wanted_columns = column_semantics.keys()
 
     wanted = pd.read_excel(excel_file, sheet_name=sheet_name, header=header_row)[
@@ -36,6 +54,21 @@ def prepare_tyndp_data(excel_file, sheet_name, status_map, asset_type_map, colum
     # map 'cable' to 'line' but add binary column 'underground'
     wanted['underground'] = wanted['asset_type'].str.fullmatch('cable')
     wanted                = wanted.replace({'asset_type': {'cable': 'line'}})
+
+    # if 'voltage' not specified in column_semantics (because it's not given as separate column),
+    # try to extract voltages from 'description' column
+    if 'voltage' not in column_semantics.values() and 'description' in wanted.columns:
+        pattern      = re.compile(r'(\d{3})\s*\-*kv') # e.g. 400 kv, 400-kv, 400kv
+        find_voltage = lambda d: max([int(s) for s in re.findall(pattern, d.lower())], default=np.NAN)
+
+        wanted['voltage'] = wanted.description.apply(find_voltage)
+
+    if 'length' not in column_semantics.values() and 'description' in wanted.columns:
+        # TODO: test me.
+        pattern     = re.compile(r'(\d+[\.,]?\d*)\s*\-*km')
+        find_length = lambda d: int(re.findall(pattern, d.lower()[0]))
+
+        wanted['length'] = wanted.description.apply(find_length)
 
     return wanted
 
