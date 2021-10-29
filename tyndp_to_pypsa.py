@@ -20,7 +20,7 @@ _column_names = ['investment_id',
                 'specified_length_km',
                 'description']
 
-def prepare_tyndp_data(excel_file, sheet_name, status_map, asset_type_map, column_semantics, header_row=0):
+def prepare_tyndp_data(excel_file, sheet_name, column_semantics, status_map, asset_type_map=None,  header_row=0):
     if any([(v not in _column_names) for v in column_semantics.values()]):
         wrong_col_names = [v for v in column_semantics.values() if v not in _column_names]
         error_msg = f""" 
@@ -31,47 +31,58 @@ def prepare_tyndp_data(excel_file, sheet_name, status_map, asset_type_map, colum
 
     wanted_columns = column_semantics.keys()
 
-    wanted = pd.read_excel(excel_file, sheet_name=sheet_name, header=header_row)[
-        wanted_columns]
+    tyndp = pd.read_excel(excel_file, sheet_name=sheet_name, header=header_row)
+    # 'clean up' column names
+    tyndp.columns = [col.replace('\n', ' ').strip() for col in tyndp.columns]
+    # reduce to wanted_columns
+    tyndp = tyndp[wanted_columns]
 
     # map columns to specified names
-    wanted.columns = [column_semantics[c] for c in wanted.columns]
+    tyndp.columns = [column_semantics[c] for c in tyndp.columns]
 
-    if wanted['status'].dtype == pd.StringDtype:
-        wanted['status'] = wanted['status'].str.lower()
+    # TODO: (cleanup) convert whitespaces to np.NAN values.
+
+    if tyndp['status'].dtype == pd.StringDtype:
+        tyndp['status'] = tyndp['status'].str.lower()
 
     # replace status with numerical values as specified in status_map
-    wanted = wanted.loc[wanted['status'].isin(status_map.keys())]
-    wanted = wanted.replace({'status': status_map})
+    tyndp = tyndp.loc[tyndp['status'].isin(status_map.keys())]
+    tyndp = tyndp.replace({'status': status_map})
 
     # only choose those in permitting or under construction
-    wanted = wanted.loc[wanted['status'].astype(int) >= 3]
+    tyndp = tyndp.loc[tyndp['status'].astype(int) >= 3]
 
-    # map asset types to specified names
-    wanted = wanted.loc[wanted['asset_type'].isin(asset_type_map.keys())]
-    wanted = wanted.replace({'asset_type': asset_type_map})
+    if asset_type_map:
+        # map asset types to specified names
+        tyndp = tyndp.loc[tyndp['asset_type'].isin(asset_type_map.keys())]
+        tyndp = tyndp.replace({'asset_type': asset_type_map})
+    else:
+        # TODO: infer cable if e.g. description contains 'underground', 'undersea', 'cable',...
+        # assumption: 2 substations specified => line, 1 substation specified => substation
+        tyndp.loc[tyndp.substation_2.isna(), 'asset_type']  = 'substation'
+        tyndp.loc[~tyndp.substation_2.isna(), 'asset_type'] = 'line'
 
     # map 'cable' to 'line' but add binary column 'underground'
-    wanted['underground'] = wanted['asset_type'].str.fullmatch('cable')
-    wanted                = wanted.replace({'asset_type': {'cable': 'line'}})
+    tyndp['underground'] = tyndp['asset_type'].str.fullmatch('cable')
+    tyndp                = tyndp.replace({'asset_type': {'cable': 'line'}})
 
-    # if 'voltage' not specified in column_semantics (because it's not given as separate column),
-    # try to extract voltages from 'description' column
-    if 'voltage' not in column_semantics.values() and 'description' in wanted.columns:
-        pattern      = re.compile(r'(\d{3})\s*\-*kv') # e.g. 400 kv, 400-kv, 400kv
-        find_voltage = lambda d: max([int(s) for s in re.findall(pattern, d.lower())], default=np.NAN)
+    # try to extract missing values from description if not given as separate column
+    if 'voltage' not in column_semantics.values() and 'description' in tyndp.columns:
+        regex = r'(\d{3})\s*\-*kv' # e.g. '400 kv', '400-kv', '400kv'
+        tyndp['voltage'] = _find_max_quantity_in_desc(tyndp, regex)
 
-        wanted['voltage'] = wanted.description.apply(find_voltage)
+    if 'length' not in column_semantics.values() and 'description' in tyndp.columns:
+        regex = r'(\d+)[\.,]?\d*\s*\-*km' # e.g. '20km', '20.5km', '20,5 km'
+        tyndp['length'] =  _find_max_quantity_in_desc(tyndp, regex)
+    
+    # TODO: infer AC/DC
 
-    if 'length' not in column_semantics.values() and 'description' in wanted.columns:
-        # TODO: test me.
-        pattern     = re.compile(r'(\d+[\.,]?\d*)\s*\-*km')
-        find_length = lambda d: int(re.findall(pattern, d.lower()[0]))
+    return tyndp
 
-        wanted['length'] = wanted.description.apply(find_length)
-
-    return wanted
-
+def _find_max_quantity_in_desc(tyndp, regex):
+    pattern = re.compile(regex)
+    func    = lambda d: max([int(s) for s in re.findall(pattern, d.lower())], default=np.NAN)
+    return tyndp.description.apply(func)
 
 def extract_name_country(buses_file='buses_v0.1.0.csv'):
     buses = (pd.read_csv(buses_file, quotechar="'",
@@ -124,9 +135,8 @@ def extract_name_country(buses_file='buses_v0.1.0.csv'):
         rows, columns=['name', 'country', 'x', 'y'])
     return curated_buses.loc[~curated_buses.duplicated()]
 
+
 # TODO: rename parameter, this does not only work on lines.
-
-
 def prepare_substation_names(lines):
     # Form: 'Glorenza (IT)'
     subst_regex = r'(?P<place>.+)\s?[\[(](?P<country>\w{2})[)\]]'
