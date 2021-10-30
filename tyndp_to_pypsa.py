@@ -71,9 +71,9 @@ def prepare_tyndp_data(excel_file, sheet_name, column_semantics, status_map, ass
         regex = r'(\d{3})\s*\-*kv' # e.g. '400 kv', '400-kv', '400kv'
         tyndp['voltage'] = _find_max_quantity_in_desc(tyndp, regex)
 
-    if 'length' not in column_semantics.values() and 'description' in tyndp.columns:
+    if 'specified_length_km' not in column_semantics.values() and 'description' in tyndp.columns:
         regex = r'(\d+)[\.,]?\d*\s*\-*km' # e.g. '20km', '20.5km', '20,5 km'
-        tyndp['length'] =  _find_max_quantity_in_desc(tyndp, regex)
+        tyndp['specified_length_km'] =  _find_max_quantity_in_desc(tyndp, regex)
     
     # TODO: infer AC/DC
 
@@ -280,8 +280,13 @@ def match_tyndp_with_buses(lines, tyndp_to_bus, curated_buses):
     results = pd.DataFrame(index=fr_to_tuples.keys(),
                            data=fr_to_tuples.values(),
                            columns=['s1', 'x1', 'y1', 's2', 'x2', 'y2', 'coord_dist_km'])
+    
+    # TODO: is there a better way?
+    columns = ['commissioning_year', 'status', 'ac_dc', 'voltage', 'underground']
+    columns = set(lines.columns).intersection(set(columns))
+
     # TODO: return lines which could not be matched
-    return results.join(lines[['commissioning_year', 'status', 'ac_dc', 'voltage', 'underground']])
+    return results.join(lines[columns])
 
 
 def match_tyndp_with_geopy(lines):
