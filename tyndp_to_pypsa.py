@@ -29,11 +29,13 @@ def prepare_tyndp_data(excel_file, sheet_name, column_semantics, status_map, ass
                     """
         raise ValueError(error_msg)
 
-    wanted_columns = column_semantics.keys()
 
     tyndp = pd.read_excel(excel_file, sheet_name=sheet_name, header=header_row)
     # 'clean up' column names
-    tyndp.columns = [col.replace('\n', ' ').strip() for col in tyndp.columns]
+    simplify_column  = lambda s: s.replace(' ', '').replace('\n', '').lower()
+    column_semantics = {simplify_column(k):v for (k,v) in column_semantics.items()}
+    wanted_columns   = column_semantics.keys()
+    tyndp.columns    = [simplify_column(col) for col in tyndp.columns]
     # reduce to wanted_columns
     tyndp = tyndp[wanted_columns]
 
