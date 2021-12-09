@@ -1,2 +1,5 @@
-x,y,note
--8.389435,40.95916
+x,y,not_in_satellite_img,not_in_pypsa,note
+-8.389435,40.95916,True,False,
+-8.32297374841596,41.57731087026569,False,True,
+,,True,True,Sobrado (PT); see https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/1
+-8.613236320833042,41.35747938425103,False,True,Vila Nova de Famalicão (PT); see https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/4
