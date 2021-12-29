@@ -20,8 +20,10 @@
 11,1503,28,2026,under_construction,line,Villanova (IT),Kotor (ME),DC,445.0,Second HVDC Module (600 MW) of interconnection line between Italy and Montenegro via 445 km 500kV DC subsea cable and converter stations at both ending points.,True,500.0,https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/28,14.13,42.4034,18.771,42.425 
 
 12,635,29,2027,in_permitting,line,Sicily Area (IT),Tunisia node,DC,200.0,New interconnection between Italy and Tunisia - new HVDC submarine cable,False,,https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/29,,,,
-13,90,33,2023,in_permitting,line,Calenzano (IT),Colunga (IT),AC,80.0,"Voltage upgrade of the existing 80km Calenzano-Colunga 220kV OHL to 400kV, providing in and out connection to the existing 220/150kV substation of S. Benedetto del Querceto (which already complies with 400kV standards).",False,400.0,https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/33,,,,
-14,1041,33,2026,planned_not_yet_permitting,line,Villanova (IT),S. Barbara (IT),AC,350.0,Removing limitations on existing 220 kV grid between Villanova e S.Barbara,False,220.0,https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/33,,,,
+
+13,90,33,2023,in_permitting,line,Calenzano (IT),Colunga (IT),AC,80.0,"Voltage upgrade of the existing 80km Calenzano-Colunga 220kV OHL to 400kV, providing in and out connection to the existing 220/150kV substation of S. Benedetto del Querceto (which already complies with 400kV standards).",False,400.0,https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/33,11.1666,43.8491,11.4614,44.4837
+14,1041,33,2026,planned_not_yet_permitting,line,Villanova (IT),S. Barbara (IT),AC,350.0,Removing limitations on existing 220 kV grid between Villanova e S.Barbara,False,220.0,https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/33,14.13,42.4034,13.3866373,42.3629984
+
 15,313,35,2026,in_permitting,line,Kocin (CZ),Mirovka (CZ),AC,120.5,Connection of 2 existing 400 kV substations with new double circuit OHL having 120.5 km length and a transmission capacity of 2X1713 MVA.,False,400.0,https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/35,,,,
 
 16,315,35,2028,in_permitting,line,Kocin (CZ),Prestice (CZ),AC,117.0,Adding second circuit to the existing single circuit OHL with a total transmission capacity of 2x1730 MVA and 117 km length,False,,https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/35,,,,
