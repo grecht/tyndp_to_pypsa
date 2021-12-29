@@ -6,3 +6,5 @@ x,y,not_in_satellite_img,not_in_pypsa,note
 -2.880286,43.349776,False,False,Gatica (ES);Possible PyPSA coordinates: -2.886658 43.32218
 -0.435896,45.069715,False,True,Cubnezais (FR);Possible PyPSA coordinates: -0.341949 45.03083
 3.469204,50.782616,False,True,Avelgem (BE);Possible PyPSA coordinates: 3.429108 80.77381
+10.500459300005021,46.88952470756885,True,True,Nauders (AT)
+10.57027,46.67241,False,True,Glorenza (IT)
