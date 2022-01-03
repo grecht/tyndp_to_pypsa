@@ -1,4 +1,4 @@
-x,y,not_in_satellite_img,not_in_pypsa,note
+x,y,not_in_openstreetmap,not_in_pypsa,note
 -8.389435,40.95916,True,False,
 -8.32297374841596,41.57731087026569,False,True,
 ,,True,True,Sobrado (PT); see https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/1
@@ -12,3 +12,4 @@ x,y,not_in_satellite_img,not_in_pypsa,note
 6.6546,59.5303,False,True,Kvilldal (NO); part of north sea link
 26.0729,64.8442,False,True,Pyhänselkä (FI)
 20.3308,66.6807,False,True,Messaure (SE)
+16.6527,57.4159,False,True,Ekhyddan (SE)
