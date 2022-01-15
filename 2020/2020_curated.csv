@@ -110,7 +110,8 @@ Resita -> Icloda
 Icloda -> Sacalaz
 Icloda -> Timisoara 
 
-69,616,150,2028,in_permitting,line,Salgareda (IT),Bericevo (SI),DC,0.0,New HVDC link between Salgareda (IT) and Bericevo/Divaca (SI),False,,https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/150,,,,
+69,616,150,2028,in_permitting,line,Salgareda (IT),Bericevo (SI),DC,170,New HVDC link between Salgareda (IT) and Bericevo/Divaca (SI),True,500,https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/150,12.48828,45.72046,14.61367,46.09291
+
 70,987,153,2025,in_permitting,line,Menuel (FR),Exeter (GB),DC,220.0,France-Alderney-Britain (FAB) is a new 220km-long HVDC subsea interconnection between Exeter (UK) and Menuel (France) with VSC converter station at both ends. Expected rated capacity is 2*700 MW. ,True,,https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/153,,,,
 71,998,167,2023,under_construction,line,Revsing (DKW),Bicker Fen (GB),DC,770.0,2 x700 MW HVDC subsea link across the North Seas. New substations on both sides; Bicker Fen (GB); Revsing (DK),True,,https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/167,,,,
 72,382,170,2025,in_permitting,line,Vilnius,Neris,AC,80.0,New 330 kV OHL Vilnius-Neris,False,330.0,https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/170,,,,
