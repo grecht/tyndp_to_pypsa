@@ -126,8 +126,21 @@ Icloda -> Timisoara
 
 
 
-86,1634,170,2025,in_permitting,line,Bitenai,KHAE,AC,234.0,"New 330 kV OHL Bitenai-KHAE. One part of the new line will be constructed as second circuit on exicting 330 kV OHL Bitenai-Jurbarkas (44km), one part will be new line (74 km), and as third part of new line will be used part of exicting 330 kV OHL KHAE-Sovetsk.",False,330.0,https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/170,,,,
+86,1634,170,2025,in_permitting,line,Bitenai,Kruonis Pumped Storage Hydroelectric Plant,AC,234.0,"New 330 kV OHL Bitenai-KHAE. One part of the new line will be constructed as second circuit on exicting 330 kV OHL Bitenai-Jurbarkas (44km), one part will be new line (74 km), and as third part of new line will be used part of exicting 330 kV OHL KHAE-Sovetsk. KHAE stands for 'Kruonis Pumped Storage Hydroelectric Plant'.",False,330.0,https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/170,,,,
+
+Bitenai: 22.06383,55.07571
+Jurbarkas: 22.74159,55.09725
+Sovetsk: 21.91748,55.05709
+KHAE: 24.25141, 54.80139
+
+Bitenai -> Jurbarkas (44)
+Jurbarkas -> Sovetsk
+Sovetsk -> KHAE 
+
 87,1659,170,2025,in_permitting,line,Darbenai,Bitenai,AC,147.0,New 330 kV OHL Darbenai-Bitenai,False,330.0,https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/170,,,,
+
+Darbenai: 21.26350,56.02125
+
 89,1661,170,2025,planned_not_yet_permitting,line,Dunowo,Zydowo Kierzkowo,AC,57.11,"Dunowo-Zydowo Kierzkowo 400kV line is necessary to assure that after commissioning of Harmony Link and offshore wind farms, full capabilities would be available on the Polish-Lithuanian subsea interconnector. This project includes reconstruction of Dunowo substation with installation of 400/110 kV transformers and construction of new double-circuit 400 kV.",False,400.0,https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/170,,,,
 90,1662,170,2025,planned_not_yet_permitting,line,Pila Krzewina,Zydowo Kierzkowo,AC,119.0,Pila Krzewina-Zydowo Kierzkowo 400kV line is interrelated with project aiming in building Dunowo-Zydowo Kierzkowo line. This project includes reconstruction and modernization of Pila Krzewina electrical station with installation of  400/110 kV transformers and reactive power compensation devices and construction of new double-circuit 400 kV.,False,400.0,https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/170,,,,
 91,1663,170,2023,planned_not_yet_permitting,line,Krajnik,Morzyczyn,AC,41.5,"To allow effective energy flows in the north-west part of Poland after commissioning of Harmony Link, modernization of “North Line” (line between Krajnik and Gdansk Blonia) is necessary. The first project of North Line is modernization of Krajnik-Morzyczyn 400kV line.",False,400.0,https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/170,,,,
