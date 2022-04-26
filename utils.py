@@ -1,9 +1,7 @@
 import pandas as pd
 import numpy as np
-import math
 import dateutil
 import datetime
-import itertools
 import re
 
 _column_names = [
@@ -35,6 +33,23 @@ def prepare_tyndp_data(excel_file,
                        asset_type_map=None,
                        header_row=0,
                        base_url=None):
+    """
+    Processes a TYNDP excel file (which all have different formats)
+    and writes it into a .csv file with a specified format.
+
+    Keyword arguments:
+    excel_file          -- file name of excel file
+    sheet_name          -- name of sheet within 'excel_file' where lines are listed
+    column_semantics    -- dictionary which maps original column names in excel_file to 
+                           their equivalents in '_column_names'
+    status_map          -- dictionary which maps the original project status identifiers to
+                           their equivalents in '_status'
+    header_row          -- row in sheet 'sheet_name' of 'excel_file' which contains column names
+    base_url            -- some TYNDPs are accessible on the web with a uniform 'base_url/project_id' format,
+                           where often additional information (not contained in 'excel_file'!) is displayed.
+                           This allows specifying the base url, and automatically generates a column containing
+                           the respective project urls for easy access.
+    """
     if any([(v not in _column_names) for v in column_semantics.values()]):
         wrong_col_names = [v for v in column_semantics.values() if v not in _column_names]
         error_msg = f""" 
