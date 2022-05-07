@@ -1,13 +1,12 @@
+import os
 from geopy import *
 import geopy.distance
 import pandas as pd
 import numpy as np
 import math
-import dateutil
-import datetime
 import itertools
 import re
-import Levenshtein
+import Levenshtein # get via 'pip install levenshtein' (not on conda)
 
 # see 'util.py' for expected column names
 
@@ -20,7 +19,7 @@ def extract_name_country(buses_file='buses_v0.1.0.csv'):
              .rename(columns=dict(voltage='v_nom')))
 
     buses = buses.query('tags.notnull()', engine='python')
-    buses = buses.query("symbol == 'Substation'")
+    buses = buses.query("symbol == 'Substation'") 
 
     # Form: 'key => value, key => value, ...'
     split_regex = r'("\w+"=>"[^"]*"),'
