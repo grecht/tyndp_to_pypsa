@@ -15,6 +15,10 @@ Most substations can be found in Openstreetmap, and often their names match thos
 ## Coordinates of Finnish substations: https://www.businessfinland.fi/globalassets/international-customers/data-center-assets/substations.kmz
 Openstreetmap does not contain many Finnish substations or does not include their names. This obscure file can be opened with Google Earth and contains the coordinates of the most important substations in Finland.
 
+## Folder 'entsoegridkit': https://github.com/PyPSA/pypsa-eur/tree/master/data/entsoegridkit
+Contains a representation of the ENTSO-E network topology programatically extracted from the [ENTSO-E interactive grid map](https://www.entsoe.eu/data/map/), which [PyPSA-Eur](https://github.com/PyPSA/pypsa-eur/) is based on.
+The data is used here to prepare the extended TYNDP for its integration into PyPSA-Eur.
+
 # Procedure
 Due to the poor data quality of the TYNDP excel files mentioned above, it is almost impossible to extend the TYNDPs without manual work.
 Hence, the following procedure was used:
