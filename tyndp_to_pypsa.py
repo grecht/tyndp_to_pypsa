@@ -1,4 +1,5 @@
 import sys
+import os
 import warnings
 import datetime
 import re
@@ -13,7 +14,7 @@ _IGNORE_PROJECTS = [
 
 # TODO: is 'investment_id' unique? Otherwise, we must check also check 'project_id'
 _IGNORE_INVESTMENTS = [
-       1652  # line from new Bodelwyddan converter station to Bodelwyddan 2 ('project_id'=349)
+       1652, 1653  # line from new Bodelwyddan converter station to Bodelwyddan 2 ('project_id'=349)
 ]
 
 __SPLIT_REGEX = r'("\w+"\s*=>\s*"[^"]*"),'
@@ -119,9 +120,6 @@ def _buses_to_pypsa(tyndp_buses):
     tyndp_buses['dc'] = tyndp_buses.ac_dc.map({'AC': False, 'DC': True})
     tyndp_buses = tyndp_buses.drop('ac_dc', axis=1)
 
-    # TODO: extract substation name and country to 'tags' column,
-    # set 'symbol' column to "Substation"
-
     reg = r'(?P<name>.+)\s?[\[(](?P<country>\w{2})[)\]]'
     pat = re.compile(reg)
 
@@ -135,6 +133,12 @@ def _buses_to_pypsa(tyndp_buses):
 
     tyndp_buses['country'] = tyndp_buses['name'].apply(extract_country)
     tyndp_buses['name'] = tyndp_buses['name'].apply(extract_name)
+
+    # TODO: remove me
+    # If there are multiple upgrades planned for the same bus, take the
+    # "most significant" one (e.g. transformer update with highest voltage).
+    # sig_cols = ['v_nom', 'dc']
+
 
     # Create tags
     tag_cols = ['name',
@@ -262,7 +266,7 @@ def _find_closest_gridx_buses(tyndp_buses,
 
     tyndp_buses['closest_gridx_bus'] = pd.DataFrame(
                                             dict(D=dist[found_b],
-                                            i=gridx_buses.index[ind[found_b] % buses.index.size]),
+                                            i=gridx_buses.index[ind[found_b] % gridx_buses.index.size]),
                                             index=tyndp_buses.index[found_i]) \
                                          .sort_values(by='D')\
                                          [lambda ds: ~ds.index.duplicated(keep='first')] \
@@ -270,9 +274,10 @@ def _find_closest_gridx_buses(tyndp_buses,
     return tyndp_buses
 
 
-def _split_buses_into_existing_new(tyndp_buses, gridx_buses):
+def _split_buses_into_existing_new(tyndp_buses):
     existing_buses = tyndp_buses.loc[~tyndp_buses['closest_gridx_bus'].isnull()]
     existing_buses = existing_buses.set_index('closest_gridx_bus')
+    existing_buses.index.name = None
 
     new_buses = tyndp_buses.loc[tyndp_buses['closest_gridx_bus'].isnull()]
     new_buses = new_buses.drop('closest_gridx_bus', axis=1)
@@ -293,7 +298,7 @@ def _split_lines_into_existing_new(tyndp_lines, gridx_lines):
 
     # "reversed index" hack to get original index
     # from 'tyndp_undir' lost through merge
-    row_to_ind = {tuple(row):ind for ind, row in
+    row_to_ind = {tuple(row): ind for ind, row in
                   tyndp_undir.loc[:, ('bus0', 'bus1')].iterrows()}
 
     existing_ind = [row_to_ind[t] for t in
@@ -304,7 +309,7 @@ def _split_lines_into_existing_new(tyndp_lines, gridx_lines):
 
     # Update indices of 'existing_lines' to those of the counterpart in 'lines'
     row_to_ind = {tuple(row): ind for ind, row in
-                  lines.loc[:, ('bus0', 'bus1')].drop_duplicates().iterrows()}
+                  gridx_lines.loc[:, ('bus0', 'bus1')].drop_duplicates().iterrows()}
     existing_lines.loc[:, 'line_id'] = (existing_lines.loc[:, ('bus0', 'bus1')]
                                         .apply(lambda row: row_to_ind[tuple(row)],
                                                axis=1))
@@ -314,6 +319,10 @@ def _split_lines_into_existing_new(tyndp_lines, gridx_lines):
 
 
 def _take_larger_vals(df_a, df_b, cols):
+    """
+    For each column in 'cols' in each pair of rows from 'df_a' and 'df_b'
+    with a matching index, choose the value which is larger.
+    """
     df_a = df_a.loc[:, cols]
     df_b = df_b.loc[df_a.index, cols]
 
@@ -330,7 +339,8 @@ def _compare_tags_buses(existing_buses, gridx_buses, new_buses):
 
         tyndp_tags = _tags_to_dict(tyndp_bus)
         gridx_tags = _tags_to_dict(gridx_bus)
-        conflicting_tags = [k for k in tyndp_tags if k in gridx_tags and tyndp_tags[k] != gridx_tags[k]]
+        conflicting_tags = [k for k in tyndp_tags if k in gridx_tags
+                            and tyndp_tags[k] != gridx_tags[k]]
 
         if conflicting_tags:
             # Edge case due to buses in different countries
@@ -363,7 +373,8 @@ def _merge_tags_lines(existing_lines, gridx_lines):
 
 def _assign_index(new_buses, gridx_buses):
     max_index = max(map(int, gridx_buses.index))
-    new_index = list(map(str, range(max_index + 1, max_index + 1 + len(new_buses))))
+    new_max = max_index + 1 + len(new_buses)
+    new_index = list(map(str, range(max_index + 1, new_max)))
     new_buses.index = new_index
 
     return new_buses
@@ -372,8 +383,8 @@ def _assign_index(new_buses, gridx_buses):
 def main():
     tyndp_file = sys.argv[1]  # e.g. '2020/tyndp_2020.csv'
     df = pd.read_csv(tyndp_file)
-    df = df.loc[~df['project_id'].isin(_IGNORE_PROJECTS)]
-    df = df.loc[~df['investment_id'].isin(_IGNORE_INVESTMENTS)]
+    df = df.loc[~df.loc[:, 'project_id'].isin(_IGNORE_PROJECTS)]
+    df = df.loc[~df.loc[:, 'investment_id'].isin(_IGNORE_INVESTMENTS)]
 
     tyndp_buses, tyndp_lines, tyndp_links = _splitinto_buses_lines_links(df)
 
@@ -387,8 +398,8 @@ def main():
                    .drop(['station_id'], axis=1)
                    .rename(columns=dict(voltage='v_nom')))
 
-    tyndp_buses = _buses_to_pypsa(tyndp_buses, gridx_buses)
-    tyndp_buses = _find_closest_gridx_buses(tyndp_buses)
+    tyndp_buses = _buses_to_pypsa(tyndp_buses)
+    tyndp_buses = _find_closest_gridx_buses(tyndp_buses, gridx_buses)
 
     existing_buses, new_buses = _split_buses_into_existing_new(tyndp_buses)
 
@@ -407,7 +418,9 @@ def main():
 
     new_buses = _assign_index(new_buses, gridx_buses)
 
-    # TODO: Define 'all_buses' (merge gridx with existing, add new)
+    gridx_buses.update(existing_buses)
+    # Only used for matching lines and links in the following.
+    all_buses = pd.concat([gridx_buses, new_buses])
 
     # Load lines from PyPSA-Eur gridextract.
     gridx_lines = (pd.read_csv(r'entsoegridkit/lines.csv',
@@ -424,9 +437,10 @@ def main():
                                         circuits='num_parallel')))
 
     gridx_lines['length'] /= 1e3
-    gridx_lines = pd.DataFrame(gridx_lines.loc[gridx_lines.bus0.isin(gridx_buses.index)
-                               & gridx_lines.bus1.isin(gridx_buses.index)])
+    gridx_lines = gridx_lines.loc[gridx_lines.bus0.isin(gridx_buses.index)
+                                  & gridx_lines.bus1.isin(gridx_buses.index)]
 
+    tyndp_lines = _lines_to_pypsa(tyndp_lines, all_buses)
     existing_lines, new_lines = _split_lines_into_existing_new(tyndp_lines,
                                                                gridx_lines)
 
@@ -438,6 +452,42 @@ def main():
     existing_lines = _merge_tags_lines(existing_lines, gridx_lines)
 
     # Load links from PyPSA-Eur gridextract.
+    gridx_links = (pd.read_csv(r'entsoegridkit/links.csv',
+                               quotechar="'",
+                               true_values=['t'],
+                               false_values=['f'],
+                               dtype=dict(link_id='str',
+                                          bus0='str',
+                                          bus1='str',
+                                          under_construction="bool"))
+                   .set_index('link_id'))
+    gridx_links['length'] /= 1e3
+    # Skagerrak Link is connected to 132kV bus which is removed
+    # in_load_buses_from_eg. Connect to neighboring 380kV bus
+    gridx_links.loc[gridx_links.bus1 == '6396', 'bus1'] = '6398'
+    gridx_links = gridx_links.loc[gridx_links.bus0.isin(gridx_buses.index)
+                                  & gridx_links.bus1.isin(gridx_buses.index)]
+
+    tyndp_links = _links_to_pypsa(tyndp_links, all_buses)
+    existing_links, new_links = _split_lines_into_existing_new(tyndp_links,
+                                                               gridx_links)
+    links_check_cols = ['underground'] # TODO:
+    existing_links.loc[:, lines_check_cols] = _take_larger_vals(existing_links,
+                                                                gridx_links,
+                                                                links_check_cols)
+    existing_links = _merge_tags_lines(existing_links, gridx_links)
+
+    pypsa_ready = os.path.join(os.path.dirname(tyndp_file), 'pypsa_ready')
+    if not os.path.isdir(pypsa_ready):
+        os.makedirs(pypsa_ready)
+
+    existing_buses.to_csv(os.path.join(pypsa_ready, 'existing_buses.csv'))
+    new_buses.to_csv(os.path.join(pypsa_ready, 'new_buses.csv'))
+
+    existing_lines.to_csv(os.path.join(pypsa_ready, 'existing_lines.csv'))
+    new_lines.to_csv(os.path.join(pypsa_ready, 'new_lines.csv'))
+    existing_links.to_csv(os.path.join(pypsa_ready, 'existing_links.csv'))
+    new_links.to_csv(os.path.join(pypsa_ready, 'new_links.csv'))
 
 
 if __name__ == "__main__":
