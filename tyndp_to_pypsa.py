@@ -12,13 +12,8 @@ _IGNORE_PROJECTS = [
        335  # North Sea Wind Power Hub
 ]
 
-# TODO: is 'investment_id' unique? Otherwise, we must check also check 'project_id'
-_IGNORE_INVESTMENTS = [
-       1652, 1653  # line from new Bodelwyddan converter station to Bodelwyddan 2 ('project_id'=349)
-]
-
-__SPLIT_REGEX = r'("\w+"\s*=>\s*"[^"]*"),'
-_TAG_REGEX = r'"(?P<key>\w+)"\s*=>\s*"(?P<value>[^"]*)"'  # Form: '"key"=>"value"'
+_SPLIT_REGEX = r'("\w+"\s*=>\s*"[^"]*"),'
+_TAG_REGEX = r'"(?P<key>\w+)"\s*=>\s*"(?P<value>[^"]*)"'  # '"key"=>"value"'
 _TAG_PATTERN = re.compile(_TAG_REGEX)
 
 
@@ -38,7 +33,7 @@ def _tags_to_dict(row):
     """
     if row.tags is np.nan:
         return {}
-    tags = list(filter(None, [s.strip() for s in re.split(__SPLIT_REGEX,
+    tags = list(filter(None, [s.strip() for s in re.split(_SPLIT_REGEX,
                                                           row.loc['tags'])]))
     return dict(_TAG_PATTERN.match(t).groups() for t in tags)
 
@@ -134,11 +129,24 @@ def _buses_to_pypsa(tyndp_buses):
     tyndp_buses['country'] = tyndp_buses['name'].apply(extract_country)
     tyndp_buses['name'] = tyndp_buses['name'].apply(extract_name)
 
-    # TODO: remove me
-    # If there are multiple upgrades planned for the same bus, take the
-    # "most significant" one (e.g. transformer update with highest voltage).
-    # sig_cols = ['v_nom', 'dc']
+    dupl = tyndp_buses.loc[:, ('x', 'y')].duplicated(keep=False)
+    if not tyndp_buses[dupl].empty:
+        dupl_df = (tyndp_buses.loc[dupl, ('name',
+                                          'country',
+                                          'x',
+                                          'y',
+                                          'v_nom',
+                                          'tyndp2020_proj_id',
+                                          'tyndp2020_invest_id')]
+                   .sort_values(['x', 'y']))
 
+        s = "For some bus locations, there are several entries:\n" \
+            f"{dupl_df.to_string()}\n" \
+            f"Duplicates will be dropped by taking row with highest voltage."
+        warnings.warn(s)
+        tyndp_buses = (tyndp_buses
+                       .sort_values('v_nom')
+                       .drop_duplicates(subset=['x', 'y'], keep='last'))
 
     # Create tags
     tag_cols = ['name',
@@ -271,6 +279,7 @@ def _find_closest_gridx_buses(tyndp_buses,
                                          .sort_values(by='D')\
                                          [lambda ds: ~ds.index.duplicated(keep='first')] \
                                          .sort_index()['i']
+
     return tyndp_buses
 
 
@@ -384,7 +393,6 @@ def main():
     tyndp_file = sys.argv[1]  # e.g. '2020/tyndp_2020.csv'
     df = pd.read_csv(tyndp_file)
     df = df.loc[~df.loc[:, 'project_id'].isin(_IGNORE_PROJECTS)]
-    df = df.loc[~df.loc[:, 'investment_id'].isin(_IGNORE_INVESTMENTS)]
 
     tyndp_buses, tyndp_lines, tyndp_links = _splitinto_buses_lines_links(df)
 
@@ -411,10 +419,9 @@ def main():
 
     # Compare tags of existing_buses to those of their counterparts.
     # Might reveal that buses were incorrectly put into 'existing_buses'.
-    existing_buses, new_buses = _compare_tags_buses(
-                                    existing_buses,
-                                    gridx_buses,
-                                    new_buses)
+    existing_buses, new_buses = _compare_tags_buses(existing_buses,
+                                                    gridx_buses,
+                                                    new_buses)
 
     new_buses = _assign_index(new_buses, gridx_buses)
 
@@ -471,7 +478,7 @@ def main():
     tyndp_links = _links_to_pypsa(tyndp_links, all_buses)
     existing_links, new_links = _split_lines_into_existing_new(tyndp_links,
                                                                gridx_links)
-    links_check_cols = ['underground'] # TODO:
+    links_check_cols = ['underground']
     existing_links.loc[:, lines_check_cols] = _take_larger_vals(existing_links,
                                                                 gridx_links,
                                                                 links_check_cols)
