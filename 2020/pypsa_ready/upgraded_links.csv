@@ -1,0 +1,3 @@
+line_id,length,commissioning_year,underground,v_nom,p_nom,tags,bus0,bus1,geometry
+14826,69.0,2021,True,,,"""url""=>""https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/172"", ""tyndp2020_proj_id""=>""172"", ""tyndp2020_invest_id""=>""1487"", ""tyndp_status""=>""under_construction""",4977,4983,"LINESTRING (0.95855700000001 51.059523, 1.833344 50.902167)"
+5635,125.0,2036,True,,700.0,"""url""=>""https://tyndp2020-project-platform.azurewebsites.net/projectsheets/transmission/1068"", ""tyndp2020_proj_id""=>""1068"", ""tyndp2020_invest_id""=>""1741"", ""tyndp_status""=>""under_consideration""",6300,6348,"LINESTRING (16.659393 57.43682, 18.227692 57.571097)"
