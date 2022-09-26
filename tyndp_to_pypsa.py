@@ -1,3 +1,9 @@
+"""
+This module splits up an extended TYNDP into buses, lines, and links,
+classifies them into 'upgraded' and 'new' with respect to PyPSA-Eur's
+grid topology, and converts the data into the format used by PyPSA-Eur.
+"""
+import pypsa_eur_data.import_pypsa_data as pypsadata
 import sys
 import os
 import warnings
@@ -6,6 +12,8 @@ import pandas as pd
 import numpy as np
 from shapely.geometry import LineString
 from scipy import spatial
+
+
 
 _IGNORE_PROJECTS = [
        335  # North Sea Wind Power Hub
@@ -19,12 +27,8 @@ _TAG_PATTERN = re.compile(_TAG_REGEX)
 def _tags_to_dict(row):
     """
     Convert 'tags' column containing comma-separated entries
-    of the form '"key"=>"value"' to a dictionary.
-
-    The 'tags' column in the data extracted from the ENTSO-E
-    interactive grid map, which PyPSA-Eur's grid topology is based
-    on, contains strings of this form. This is the PostgreSQL hstore
-    format. For further info, see following links.
+    of the form '"key"=>"value"' to a dictionary. This is the
+    PostgreSQL hstore format. For further info, see following links.
 
     https://github.com/PyPSA/pypsa-eur/tree/master/data/entsoegridkit
     https://github.com/bdw/GridKit/tree/master/entsoe
@@ -272,12 +276,12 @@ def _find_closest_gridx_buses(tyndp_buses,
     found_i = np.arange(tyndp_buses.index.size)[found_b]
 
     tyndp_buses['closest_gridx_bus'] = pd.DataFrame(
-                                            dict(D=dist[found_b],
-                                            i=gridx_buses.index[ind[found_b] % gridx_buses.index.size]),
-                                            index=tyndp_buses.index[found_i]) \
-                                         .sort_values(by='D')\
-                                         [lambda ds: ~ds.index.duplicated(keep='first')] \
-                                         .sort_index()['i']
+        dict(D=dist[found_b],
+             i=gridx_buses.index[ind[found_b] % gridx_buses.index.size]),
+        index=tyndp_buses.index[found_i]) \
+        .sort_values(by='D')\
+        [lambda ds: ~ds.index.duplicated(keep='first')] \
+        .sort_index()['i']
 
     return tyndp_buses
 
@@ -388,54 +392,6 @@ def _assign_index(new_buses, gridx_buses):
     return new_buses
 
 
-def _import_gridx_buses():
-    return (pd.read_csv(r'entsoegridkit/buses.csv',
-                        quotechar="'",
-                        true_values=['t'],
-                        false_values=['f'],
-                        dtype=dict(bus_id="str"))
-            .set_index("bus_id")
-            .drop(['station_id'], axis=1)
-            .rename(columns=dict(voltage='v_nom')))
-
-
-def _import_gridx_lines(gridx_buses):
-    gridx_lines = (pd.read_csv(r'entsoegridkit/lines.csv',
-                               quotechar="'",
-                               true_values=['t'],
-                               false_values=['f'],
-                               dtype=dict(line_id='str',
-                                          bus0='str',
-                                          bus1='str',
-                                          underground="bool",
-                                          under_construction="bool"))
-                   .set_index('line_id')
-                   .rename(columns=dict(voltage='v_nom',
-                                        circuits='num_parallel')))
-
-    gridx_lines['length'] /= 1e3
-    return gridx_lines.loc[gridx_lines.bus0.isin(gridx_buses.index)
-                           & gridx_lines.bus1.isin(gridx_buses.index)]
-
-
-def _import_gridx_links(gridx_buses):
-    gridx_links = (pd.read_csv(r'entsoegridkit/links.csv',
-                               quotechar="'",
-                               true_values=['t'],
-                               false_values=['f'],
-                               dtype=dict(link_id='str',
-                                          bus0='str',
-                                          bus1='str',
-                                          under_construction="bool"))
-                   .set_index('link_id'))
-    gridx_links['length'] /= 1e3
-    # Skagerrak Link is connected to 132kV bus which is removed
-    # in_load_buses_from_eg. Connect to neighboring 380kV bus
-    gridx_links.loc[gridx_links.bus1 == '6396', 'bus1'] = '6398'
-    return gridx_links.loc[gridx_links.bus0.isin(gridx_buses.index)
-                           & gridx_links.bus1.isin(gridx_buses.index)]
-
-
 def main():
     tyndp_file = sys.argv[1]  # e.g. '2020/tyndp_2020.csv'
     df = pd.read_csv(tyndp_file)
@@ -444,8 +400,12 @@ def main():
 
     tyndp_buses, tyndp_lines, tyndp_links = _splitinto_buses_lines_links(df)
 
+    # Import PyPSA-Eur grid topology
+    gridx_buses = pypsadata.import_gridx_buses()
+    gridx_buses, gridx_links = pypsadata.import_gridx_links(gridx_buses)
+    gridx_lines = pypsadata.import_gridx_lines(gridx_buses)
+
     # BUSES
-    gridx_buses = _import_gridx_buses()
     tyndp_buses = _buses_to_pypsa(tyndp_buses)
     tyndp_buses = _find_closest_gridx_buses(tyndp_buses, gridx_buses)
 
@@ -469,7 +429,6 @@ def main():
     all_buses = pd.concat([gridx_buses, new_buses])
 
     # LINES
-    gridx_lines = _import_gridx_lines(gridx_buses)
     tyndp_lines = _lines_to_pypsa(tyndp_lines, all_buses)
     upgraded_lines, new_lines = _split_lines_into_upgraded_new(tyndp_lines,
                                                                gridx_lines)
@@ -482,16 +441,16 @@ def main():
     upgraded_lines = _merge_tags_lines(upgraded_lines, gridx_lines)
 
     # LINKS
-    gridx_links = _import_gridx_links(gridx_buses)
     tyndp_links = _links_to_pypsa(tyndp_links, all_buses)
     upgraded_links, new_links = _split_lines_into_upgraded_new(tyndp_links,
                                                                gridx_links)
     links_check_cols = ['underground']
-    upgraded_links.loc[:, lines_check_cols] = _take_larger_vals(upgraded_links,
+    upgraded_links.loc[:, links_check_cols] = _take_larger_vals(upgraded_links,
                                                                 gridx_links,
                                                                 links_check_cols)
     upgraded_links = _merge_tags_lines(upgraded_links, gridx_links)
 
+    # Export merged data.
     pypsa_ready = os.path.join(os.path.dirname(tyndp_file), 'pypsa_ready')
     if not os.path.isdir(pypsa_ready):
         os.makedirs(pypsa_ready)
