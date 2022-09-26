@@ -14,7 +14,6 @@ from shapely.geometry import LineString
 from scipy import spatial
 
 
-
 _IGNORE_PROJECTS = [
        335  # North Sea Wind Power Hub
 ]
@@ -159,11 +158,7 @@ def _buses_to_pypsa(tyndp_buses):
                 'tyndp2020_proj_id',
                 'tyndp2020_invest_id',
                 'tyndp_status']
-
-    tyndp_buses.loc[:, 'tags'] = tyndp_buses.apply(
-                                    lambda row: _cols_to_tags(tag_cols, row),
-                                    axis=1)
-    tyndp_buses = tyndp_buses.drop(tag_cols, axis=1)
+    tyndp_buses = _create_tags_drop_cols(tyndp_buses, tag_cols)
 
     return tyndp_buses
 
@@ -212,17 +207,22 @@ def _handle_tags_coords_linestrings(df, all_buses):
                 'tyndp2020_proj_id',
                 'tyndp2020_invest_id',
                 'tyndp_status']
-    df.loc[:, 'tags'] = df.apply(lambda row: _cols_to_tags(tag_cols, row),
-                                 axis=1)
-    # Match buses, take their coordinates (s.t. those of upgraded buses
-    # already in PyPSA-Eur remain the same), create linestring.
-    df = df.drop(tag_cols, axis=1)
+    df = _create_tags_drop_cols(df, tag_cols)
     df = df.join(_create_bus0_bus1(df, all_buses))
     df = _apply_gridx_coords(df, all_buses)
     df.loc[:, 'geometry'] = df.apply(_coords_to_linestring, axis=1)
     df = df.drop(['x1', 'y1', 'x2', 'y2'], axis=1)
 
     return df
+
+
+def _create_tags_drop_cols(df, tag_cols):
+    df.loc[:, 'tags'] = df.apply(lambda row: _cols_to_tags(tag_cols, row),
+                                 axis=1)
+    # Match buses, take their coordinates (s.t. those of upgraded buses
+    # already in PyPSA-Eur remain the same), create linestring.
+    tag_cols = filter(lambda c: c != 'tyndp_status', tag_cols)
+    return df.drop(tag_cols, axis=1)
 
 
 def _create_bus0_bus1(df, all_buses):
@@ -383,13 +383,10 @@ def _merge_tags_lines(upgraded_lines, gridx_lines):
     return upgraded_lines
 
 
-def _assign_index(new_buses, gridx_buses):
-    max_index = max(map(int, gridx_buses.index))
-    new_max = max_index + 1 + len(new_buses)
-    new_index = list(map(str, range(max_index + 1, new_max)))
-    new_buses.index = new_index
-
-    return new_buses
+def _assign_index(df):
+    new_index = ['TYNDP2020_' + s for s in map(str, range(0, len(df)))]
+    df.index = new_index
+    return df
 
 
 def main():
@@ -422,7 +419,7 @@ def main():
     upgraded_buses, new_buses = _compare_tags_buses(upgraded_buses,
                                                     gridx_buses,
                                                     new_buses)
-    new_buses = _assign_index(new_buses, gridx_buses)
+    new_buses = _assign_index(new_buses)
 
     gridx_buses.update(upgraded_buses)
     # Only used for matching lines and links in the following.
@@ -432,6 +429,7 @@ def main():
     tyndp_lines = _lines_to_pypsa(tyndp_lines, all_buses)
     upgraded_lines, new_lines = _split_lines_into_upgraded_new(tyndp_lines,
                                                                gridx_lines)
+    new_lines = _assign_index(new_lines)
 
     # If necessary, update voltage and 'underground' status of counterparts.
     lines_check_cols = ['v_nom', 'underground']
@@ -444,6 +442,7 @@ def main():
     tyndp_links = _links_to_pypsa(tyndp_links, all_buses)
     upgraded_links, new_links = _split_lines_into_upgraded_new(tyndp_links,
                                                                gridx_links)
+    new_links = _assign_index(new_links)
     links_check_cols = ['underground']
     upgraded_links.loc[:, links_check_cols] = _take_larger_vals(upgraded_links,
                                                                 gridx_links,
