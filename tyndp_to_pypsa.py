@@ -2,6 +2,10 @@
 This module splits up an extended TYNDP into buses, lines, and links,
 classifies them into 'upgraded' and 'new' with respect to PyPSA-Eur's
 grid topology, and converts the data into the format used by PyPSA-Eur.
+
+Some code for coordinates-based asset matching from PyPSA-Eur was used,
+where a few TYNDP2018 links are already integrated:
+https://github.com/PyPSA/pypsa-eur/blob/master/scripts/base_network.py
 """
 import pypsa_eur_data.import_pypsa_data as pypsadata
 import sys
