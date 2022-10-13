@@ -1,4 +1,4 @@
-This project aims to extend the information contained in the Ten Year Network Development Plans (TYNDPs) made by ENTSO-E in order to incorporate it into the energy system model [PSA-Eur](https://github.com/PyPSA/pypsa-eur))
+This project aims to extend the information contained in the Ten Year Network Development Plans (TYNDPs) made by ENTSO-E in order to incorporate it into the energy system model [PyPSA-Eur](https://github.com/PyPSA/pypsa-eur))
 Most notably this includes adding the substation coordinates as well as making general corrections to the data based on official project descriptions.
 So far, only the TYNDP 2020 has been extended.
 
