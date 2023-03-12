@@ -1,12 +1,14 @@
-"""
-This module splits up an extended TYNDP into buses, lines, and links,
-classifies them into 'upgraded' and 'new' with respect to PyPSA-Eur's
-grid topology, and converts the data into the format used by PyPSA-Eur.
+"""This module prepares an extended TYNDP for its integration into PyPSA-Eur.
 
-Some code for coordinates-based asset matching from PyPSA-Eur was used,
+It does so by splitting it into buses, lines, and links, classifying
+them as 'upgraded' or 'new' with respect to PyPSA-Eur's grid topology,
+and converting the data into the format used by PyPSA-Eur.
+
+Some code for coordinate-based asset matching from PyPSA-Eur was used,
 where a few TYNDP2018 links are already integrated:
 https://github.com/PyPSA/pypsa-eur/blob/master/scripts/base_network.py
 """
+
 import pypsa_eur_data.import_pypsa_data as pypsadata
 import sys
 import os
@@ -17,21 +19,17 @@ import numpy as np
 from shapely.geometry import LineString
 from scipy import spatial
 
-
-_IGNORE_PROJECTS = [
-       335  # North Sea Wind Power Hub
-]
-
 _SPLIT_REGEX = r'("\w+"\s*=>\s*"[^"]*"),'
 _TAG_REGEX = r'"(?P<key>\w+)"\s*=>\s*"(?P<value>[^"]*)"'  # '"key"=>"value"'
 _TAG_PATTERN = re.compile(_TAG_REGEX)
 
 
 def _tags_to_dict(row):
-    """
-    Convert 'tags' column containing comma-separated entries
-    of the form '"key"=>"value"' to a dictionary. This is the
-    PostgreSQL hstore format. For further info, see following links.
+    """Convert 'tags' column to a dictionary.
+
+    The column contains comma-separated entries of the form '"key"=>"value"'.
+    This is the PostgreSQL hstore format. For further info, see following
+    links.
 
     https://github.com/PyPSA/pypsa-eur/tree/master/data/entsoegridkit
     https://github.com/bdw/GridKit/tree/master/entsoe
@@ -45,18 +43,17 @@ def _tags_to_dict(row):
 
 
 def _dict_to_tags(d):
+    """Convert dictionary to a string.
+
+    Output string contains comma-separated entries of the form '"key"=>"value"'.
     """
-    Convert dictionary to string of comma-separated entries
-    of the form '"key"=>"value"'.
-    """
-    return ', '.join([f'"{k}"=>"{v}"' for k,v in d.items()])
+    return ', '.join([f'"{k}"=>"{v}"' for k, v in d.items()])
 
 
 def _cols_to_tags(cols, row):
-    """
-    Convert all values in 'row' from a column in 'col'
-    to a string of comma-separated entries of the form
-    '"key"=>"value"'.
+    """Convert all values from fields 'cols' in 'row' to a string.
+
+    Output string contains comma-separated entries of the form '"key"=>"value"'.
     """
     return ', '.join([f'"{col}"=>"{row[col]}"'
                       for col in cols if col in row.index])
@@ -96,9 +93,7 @@ def _splitinto_buses_lines_links(df):
 
 
 def _buses_to_pypsa(tyndp_buses):
-    """
-    Transform buses from TYNDP to PyPSA-Eur format.
-    """
+    """Transform buses from TYNDP to PyPSA-Eur format."""
     tyndp_buses = tyndp_buses.drop([
         'substation_2',
         'x2',
@@ -396,7 +391,6 @@ def _assign_index(df):
 def main():
     tyndp_file = sys.argv[1]  # e.g. '2020/tyndp_2020.csv'
     df = pd.read_csv(tyndp_file)
-    df = df.loc[~df.loc[:, 'project_id'].isin(_IGNORE_PROJECTS)]
     df = df.drop(['remarks', 'description'], axis=1)
 
     tyndp_buses, tyndp_lines, tyndp_links = _splitinto_buses_lines_links(df)
